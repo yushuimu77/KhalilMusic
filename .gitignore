@@ -1,0 +1,16 @@
+# 编译文件
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+
+# 日志
+*.log
+
+# MinIO / 音频资源（重点）
+minio/
+data/
+*.mp3
+*.wav
