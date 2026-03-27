@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --theme-bg-color: 274 100% 86%;
+    --dm-background: 0 0% 100% / 92%;
+    --background: 258 100% 98%;
+    --foreground: 228 32% 16%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 228 32% 16%;
+
+    --border: 0 0% 100% / 62%;
+    --input: 214.3 31.8% 91.4%;
+
+    --inactive: 0 0% 20%;
+
+    --heroui-default: 240 4.88% 83.92%;
+    --bg-content1: 0 0% 100%;
+
+    --hover-menu-bg: 0 0% 100% / 42%;
+    --active-menu-bg: 220 100% 67% / 86%;
+
+    --primary: #6c7bff;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 0 0% 100% / 31%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 252 100% 76%;
+    --radius: 1rem;
+    --search-bg: 0 0% 100% / 42%;
+  }
+
+  .dark {
+    --theme-bg-color: 241 32% 16%;
+    --dm-background: 222 25% 8% / 95%;
+    --background: 236 31% 12%;
+    --foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --inactive: 227 12% 50% / 78%;
+
+    --heroui-default: 240 5.26% 26.08%;
+    --bg-content1: 240 5.88% 10%;
+
+    --hover-menu-bg: 235 22% 82% / 18%;
+    --active-menu-bg: 228 94% 68% / 62%;
+
+    --card: 234 32% 14%;
+    --card-foreground: 210 40% 98%;
+
+    --border: 232 30% 76% / 22%;
+    --input: 217.2 32.6% 17.5%;
+
+    --primary: #7a8bff;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --accent: 222 25% 8% / 40%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 229 94% 76%;
+    --search-bg: 235 24% 20% / 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    transition: background-color 0.35s ease, color 0.35s ease;
+  }
+
+  * {
+    transition-property: color, background-color, border-color, box-shadow;
+    transition-duration: 220ms;
+    transition-timing-function: ease;
+  }
+}
+
+@layer components {
+  .glass-effect {
+    @apply relative overflow-hidden;
+    background: hsla(var(--card) / 0.34);
+    backdrop-filter: blur(36px) saturate(190%);
+    border: 1px solid hsla(0, 0%, 100%, 0.56);
+    box-shadow: 
+      0 24px 60px rgba(113, 87, 214, 0.18),
+      0 10px 24px rgba(89, 75, 162, 0.12),
+      inset 0 1px 0 hsla(0, 0%, 100%, 0.85);
+  }
+
+  .dark .glass-effect {
+    background: hsla(var(--card) / 0.58);
+    border: 1px solid hsla(232, 78%, 86%, 0.16);
+    box-shadow: 
+      0 24px 60px rgba(6, 10, 24, 0.55),
+      0 8px 20px rgba(5, 7, 17, 0.4),
+      inset 0 1px 0 hsla(228, 42%, 75%, 0.14);
+  }
+  
+  .glass-effect-hover {
+    @apply transition-all duration-300;
+  }
+  
+  .glass-effect-hover:hover {
+    background: hsla(var(--card) / 0.44);
+    transform: translateY(-2px);
+    box-shadow: 0 24px 56px rgba(113, 87, 214, 0.24);
+  }
+
+  .dark .glass-effect-hover:hover {
+    background: hsla(var(--card) / 0.68);
+  }
+
+  .glass-card {
+    @apply glass-effect rounded-2xl overflow-hidden;
+  }
+
+  .glass-panel {
+    @apply glass-effect border-none;
+  }
+}
