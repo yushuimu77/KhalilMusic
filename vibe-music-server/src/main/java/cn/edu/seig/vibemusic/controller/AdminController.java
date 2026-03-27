@@ -14,11 +14,19 @@ import cn.edu.seig.vibemusic.util.BindingResultUtil;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.UUID;
 
 
 /**
@@ -46,6 +54,15 @@ public class AdminController {
     private IPlaylistService playlistService;
     @Autowired
     private MinioService minioService;
+
+    @Value("${storage.local.songCoversDir:../vibe-music-data/songCovers}")
+    private String songCoversDir;
+
+    @Value("${storage.local.artistsDir:../vibe-music-data/artists}")
+    private String artistsDir;
+
+    @Value("${storage.local.playlistsDir:../vibe-music-data/playlists}")
+    private String playlistsDir;
 
 
     /**
@@ -242,7 +259,13 @@ public class AdminController {
      */
     @PatchMapping("/updateArtistAvatar/{id}")
     public Result updateArtistAvatar(@PathVariable("id") Long artistId, @RequestParam("avatar") MultipartFile avatar) {
-        String avatarUrl = minioService.uploadFile(avatar, "artists");  // 上传到 artists 目录
+        String avatarUrl = saveImage(avatar, artistsDir, "artists", "artist_" + artistId);
+        if (avatarUrl == null) {
+            return Result.error("保存头像失败，请稍后再试");
+        }
+        if (avatarUrl.startsWith("ERROR:")) {
+            return Result.error(avatarUrl.substring("ERROR:".length()));
+        }
         return artistService.updateArtistAvatar(artistId, avatarUrl);
     }
 
@@ -333,7 +356,13 @@ public class AdminController {
      */
     @PatchMapping("/updateSongCover/{id}")
     public Result updateSongCover(@PathVariable("id") Long songId, @RequestParam("cover") MultipartFile cover) {
-        String coverUrl = minioService.uploadFile(cover, "songCovers");  // 上传到 songCovers 目录
+        String coverUrl = saveImage(cover, songCoversDir, "songCovers", "song_" + songId);
+        if (coverUrl == null) {
+            return Result.error("保存封面失败，请稍后再试");
+        }
+        if (coverUrl.startsWith("ERROR:")) {
+            return Result.error(coverUrl.substring("ERROR:".length()));
+        }
         return songService.updateSongCover(songId, coverUrl);
     }
 
@@ -427,10 +456,59 @@ public class AdminController {
      */
     @PatchMapping("/updatePlaylistCover/{id}")
     public Result updatePlaylistCover(@PathVariable("id") Long playlistId, @RequestParam("cover") MultipartFile cover) {
-        String coverUrl = minioService.uploadFile(cover, "playlists");  // 上传到 playlists 目录
+        String coverUrl = saveImage(cover, playlistsDir, "playlists", "playlist_" + playlistId);
+        if (coverUrl == null) {
+            return Result.error("保存封面失败，请稍后再试");
+        }
+        if (coverUrl.startsWith("ERROR:")) {
+            return Result.error(coverUrl.substring("ERROR:".length()));
+        }
         return playlistService.updatePlaylistCover(playlistId, coverUrl);
     }
 
+    private String saveImage(MultipartFile file, String baseDir, String uriDir, String prefix) {
+        if (file == null || file.isEmpty()) {
+            return "ERROR:图片文件不能为空";
+        }
+        if (file.getSize() > 2 * 1024 * 1024) {
+            return "ERROR:图片大小不能超过 2MB";
+        }
+
+        String contentType = file.getContentType();
+        String originalFilename = file.getOriginalFilename();
+        boolean isPngOrJpg =
+                "image/png".equalsIgnoreCase(contentType) ||
+                        "image/jpeg".equalsIgnoreCase(contentType) ||
+                        (originalFilename != null && originalFilename.matches("(?i).*\\.(png|jpe?g)$"));
+        if (!isPngOrJpg) {
+            return "ERROR:仅支持上传 jpg/png 格式的图片";
+        }
+
+        String ext = "jpg";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+            if ("jpeg".equals(ext)) ext = "jpg";
+        } else if ("image/png".equalsIgnoreCase(contentType)) {
+            ext = "png";
+        }
+
+        Path dir = Paths.get(baseDir).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(dir);
+            String filename = prefix + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID() + "." + ext;
+            Path target = dir.resolve(filename);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/")
+                    .path(uriDir)
+                    .path("/")
+                    .path(filename)
+                    .toUriString();
+        } catch (IOException e) {
+            log.error("保存图片失败: {}", uriDir, e);
+            return null;
+        }
+    }
     /**
      * 删除歌单
      *

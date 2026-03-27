@@ -60,6 +60,7 @@ defineExpose({ hidePopover });
           :src="cropperImg"
           :preview-src-list="Array.of(cropperImg)"
           fit="cover"
+          class="w-[150px] h-[150px] rounded-full"
         />
         <div v-if="infos" class="mt-1">
           <p>

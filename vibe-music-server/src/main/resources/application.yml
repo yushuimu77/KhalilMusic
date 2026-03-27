@@ -64,3 +64,9 @@ minio:
     secretKey: minioadmin
 #    bucketName: dsad
     bucket: vibe-music-data
+
+storage:
+  local:
+    songCoversDir: ../vibe-music-data/songCovers
+    artistsDir: ../vibe-music-data/artists
+    playlistsDir: ../vibe-music-data/playlists

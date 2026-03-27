@@ -5,6 +5,7 @@ interface FormItemProps {
   title: string;
   introduction: string;
   style: string;
+  coverUrl?: string;
 }
 interface FormProps {
   formInline: FormItemProps;

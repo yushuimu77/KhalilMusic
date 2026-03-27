@@ -238,10 +238,12 @@ export function useSong(tableRef: Ref, treeRef: Ref) {
         pagination.total = result.data.total; // 设置总条目数
         dataList.value = result.data.items.map(item => ({
           songId: item.songId,
+          artistId: item.artistId,
           songName: item.songName,
           artistName: item.artistName,
           album: item.album,
           cover: item.coverUrl,
+          coverUrl: item.coverUrl,
           audio: item.audioUrl,
           style: item.style ? item.style.split(",") : [],
           releaseTime: item.releaseTime
@@ -288,16 +290,21 @@ export function useSong(tableRef: Ref, treeRef: Ref) {
   }
 
   function openDialog(title = "新增", row?: FormItemProps) {
+    if (title === "新增" && (!form.artistId || Number(form.artistId) <= 0)) {
+      message("请先在左侧选择歌手，再新增歌曲", { type: "warning" });
+      return;
+    }
     addDialog({
       title: `${title}歌曲`,
       props: {
         formInline: {
           title,
-          artistId: form.artistId ?? 0,
+          artistId: row?.artistId ?? (form.artistId ?? 0),
           artistName: row?.artistName ?? "",
           songId: row?.songId ?? 0,
           songName: row?.songName ?? "",
           album: row?.album ?? "",
+          coverUrl: row?.coverUrl ?? (row as any)?.cover ?? "",
           style: row?.style ?? [],
           releaseTime: row?.releaseTime ?? ""
         }
@@ -308,9 +315,26 @@ export function useSong(tableRef: Ref, treeRef: Ref) {
       fullscreenIcon: true,
       closeOnClickModal: false,
       contentRenderer: () => h(editForm, { ref: formRef, formInline: null }),
-      beforeSure: (done, { options }) => {
+      beforeSure: async (done, { options }) => {
         const FormRef = formRef.value.getRef();
         const curData = options.props.formInline as FormItemProps;
+        const coverFile = formRef.value.getCoverFile?.() as File | null;
+        async function uploadCoverIfNeeded(songId: number) {
+          if (!coverFile) return true;
+          const formData = new FormData();
+          formData.append("cover", coverFile);
+          try {
+            const res = await updateSongCover(songId, formData);
+            if (res.code === 0) return true;
+            message("上传封面失败，" + (res.message || ""), { type: "error" });
+            return false;
+          } catch (error) {
+            console.error("上传封面失败:", error);
+            message("上传封面失败，请重试", { type: "error" });
+            return false;
+          }
+        }
+
         function chores() {
           message(`您${title}了歌名为 ${curData.songName} 的这条数据`, {
             type: "success"
@@ -318,7 +342,7 @@ export function useSong(tableRef: Ref, treeRef: Ref) {
           done(); // 关闭弹框
           onSearch(); // 刷新表格数据
         }
-        FormRef.validate(valid => {
+        FormRef.validate(async valid => {
           if (valid) {
             console.log("curData", curData);
             // 表单规则校验通过
@@ -326,24 +350,27 @@ export function useSong(tableRef: Ref, treeRef: Ref) {
               curData.style = Array.isArray(curData.style)
                 ? curData.style.join(",")
                 : "";
-              addSong(curData).then(res => {
-                if (res.code === 0) {
-                  chores();
-                } else {
-                  message("新增歌曲失败，" + res.message, { type: "error" });
-                }
-              });
+              const res = await addSong(curData);
+              if (res.code === 0) {
+                const songId = (res as any).data as number;
+                await uploadCoverIfNeeded(songId);
+                formRef.value.resetCover?.();
+                chores();
+              } else {
+                message("新增歌曲失败，" + res.message, { type: "error" });
+              }
             } else {
               curData.style = Array.isArray(curData.style)
                 ? curData.style.join(",")
                 : "";
-              updateSong(curData).then(res => {
-                if (res.code === 0) {
-                  chores();
-                } else {
-                  message("修改歌曲失败，" + res.message, { type: "error" });
-                }
-              });
+              const res = await updateSong(curData);
+              if (res.code === 0) {
+                await uploadCoverIfNeeded(curData.songId);
+                formRef.value.resetCover?.();
+                chores();
+              } else {
+                message("修改歌曲失败，" + res.message, { type: "error" });
+              }
             }
           }
         });

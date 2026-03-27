@@ -27,11 +27,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +61,9 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
     private UserFavoriteMapper userFavoriteMapper;
     @Autowired
     private MinioService minioService;
+
+    @Value("${storage.local.playlistsDir:../vibe-music-data/playlists}")
+    private String playlistsDir;
 
     /**
      * 获取所有歌单
@@ -293,9 +301,11 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
 
         Playlist playlist = new Playlist();
         BeanUtils.copyProperties(playlistAddDTOO, playlist);
-        playlistMapper.insert(playlist);
+        if (playlistMapper.insert(playlist) == 0) {
+            return Result.error(MessageConstant.ADD + MessageConstant.FAILED);
+        }
 
-        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS);
+        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS, playlist.getPlaylistId());
     }
 
     /**
@@ -336,7 +346,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         Playlist playlist = playlistMapper.selectById(playlistId);
         String cover = playlist.getCoverUrl();
         if (cover != null && !cover.isEmpty()) {
-            minioService.deleteFile(cover);
+            deletePlaylistCoverFile(cover);
         }
 
         playlist.setCoverUrl(coverUrl);
@@ -365,7 +375,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
 
         // 2. 先删除 MinIO 里的封面文件
         if (coverUrl != null && !coverUrl.isEmpty()) {
-            minioService.deleteFile(coverUrl);
+            deletePlaylistCoverFile(coverUrl);
         }
 
         // 3. 删除数据库中的歌单信息
@@ -393,7 +403,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
 
         // 2. 先删除 MinIO 里的封面文件
         for (String coverUrl : coverUrlList) {
-            minioService.deleteFile(coverUrl);
+            deletePlaylistCoverFile(coverUrl);
         }
 
         // 3. 删除数据库中的歌单信息
@@ -402,6 +412,25 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         }
 
         return Result.success(MessageConstant.DELETE + MessageConstant.SUCCESS);
+    }
+
+    private void deletePlaylistCoverFile(String coverUrl) {
+        if (coverUrl == null || coverUrl.isEmpty()) return;
+        int idx = coverUrl.lastIndexOf("/playlists/");
+        if (idx >= 0) {
+            String filename = coverUrl.substring(idx + "/playlists/".length());
+            int qIdx = filename.indexOf("?");
+            if (qIdx >= 0) filename = filename.substring(0, qIdx);
+            Path dir = Paths.get(playlistsDir).toAbsolutePath().normalize();
+            Path target = dir.resolve(filename).normalize();
+            if (!target.startsWith(dir)) return;
+            try {
+                Files.deleteIfExists(target);
+            } catch (IOException ignored) {
+            }
+            return;
+        }
+        minioService.deleteFile(coverUrl);
     }
 
 }

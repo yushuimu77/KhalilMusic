@@ -31,12 +31,17 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -66,6 +71,9 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements IS
     private MinioService minioService;
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Value("${storage.local.songCoversDir:../vibe-music-data/songCovers}")
+    private String songCoversDir;
 
     /**
      * 获取所有歌曲
@@ -334,7 +342,7 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements IS
             }
         }
 
-        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS);
+        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS, songId);
     }
 
     /**
@@ -355,6 +363,9 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements IS
         // 更新歌曲基本信息
         Song song = new Song();
         BeanUtils.copyProperties(songUpdateDTO, song);
+        if (song.getArtistId() == null || song.getArtistId() <= 0) {
+            song.setArtistId(songInDB.getArtistId());
+        }
         if (songMapper.updateById(song) == 0) {
             return Result.error(MessageConstant.UPDATE + MessageConstant.FAILED);
         }
@@ -397,7 +408,7 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements IS
         Song song = songMapper.selectById(songId);
         String cover = song.getCoverUrl();
         if (cover != null && !cover.isEmpty()) {
-            minioService.deleteFile(cover);
+            deleteSongCoverFile(cover);
         }
 
         song.setCoverUrl(coverUrl);
@@ -449,7 +460,7 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements IS
         String audio = song.getAudioUrl();
 
         if (cover != null && !cover.isEmpty()) {
-            minioService.deleteFile(cover);
+            deleteSongCoverFile(cover);
         }
         if (audio != null && !audio.isEmpty()) {
             minioService.deleteFile(audio);
@@ -484,7 +495,7 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements IS
 
         // 2. 先删除 MinIO 里的歌曲封面和音频文件
         for (String coverUrl : coverUrlList) {
-            minioService.deleteFile(coverUrl);
+            deleteSongCoverFile(coverUrl);
         }
         for (String audioUrl : audioUrlList) {
             minioService.deleteFile(audioUrl);
@@ -496,6 +507,25 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements IS
         }
 
         return Result.success(MessageConstant.DELETE + MessageConstant.SUCCESS);
+    }
+
+    private void deleteSongCoverFile(String coverUrl) {
+        if (coverUrl == null || coverUrl.isEmpty()) return;
+        int idx = coverUrl.lastIndexOf("/songCovers/");
+        if (idx >= 0) {
+            String filename = coverUrl.substring(idx + "/songCovers/".length());
+            int qIdx = filename.indexOf("?");
+            if (qIdx >= 0) filename = filename.substring(0, qIdx);
+            Path dir = Paths.get(songCoversDir).toAbsolutePath().normalize();
+            Path target = dir.resolve(filename).normalize();
+            if (!target.startsWith(dir)) return;
+            try {
+                Files.deleteIfExists(target);
+            } catch (IOException ignored) {
+            }
+            return;
+        }
+        minioService.deleteFile(coverUrl);
     }
     /**
      * 查询专辑

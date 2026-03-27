@@ -53,8 +53,8 @@ const { title, getLogo } = useNav();
 
     .sidebar-logo-icon {
       display: inline-block;
-      height: 32px;
       width: 32px;
+      height: 32px;
       color: var(--pure-theme-sub-menu-active-text);
     }
 

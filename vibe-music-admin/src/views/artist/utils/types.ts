@@ -7,6 +7,7 @@ interface FormItemProps {
   birth: Date;
   area: string;
   introduction: string;
+  avatar?: string;
 }
 interface FormProps {
   formInline: FormItemProps;

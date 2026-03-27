@@ -6,8 +6,9 @@ interface FormItemProps {
   songId: number;
   songName: string;
   album: string;
+  coverUrl?: string;
   style: Array<string>;
-  releaseTime: Date;
+  releaseTime: string;
 }
 interface FormProps {
   formInline: FormItemProps;

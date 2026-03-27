@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onBeforeUnmount, h } from "vue";
 import ReCol from "@/components/ReCol";
 import { formRules } from "../utils/rule";
 import { FormProps } from "../utils/types";
+import { message } from "@/utils/message";
+import userAvatar from "@/assets/user.jpg";
+import { addDialog } from "@/components/ReDialog";
+import ReCropperPreview from "@/components/ReCropperPreview";
+import { deviceDetection } from "@pureadmin/utils";
 
 const props = withDefaults(defineProps<FormProps>(), {
   formInline: () => ({
@@ -12,7 +17,8 @@ const props = withDefaults(defineProps<FormProps>(), {
     gender: 0,
     birth: null,
     area: "",
-    introduction: ""
+    introduction: "",
+    avatar: ""
   })
 });
 
@@ -34,11 +40,103 @@ const genderOptions = [
 const ruleFormRef = ref();
 const newFormInline = ref(props.formInline);
 
+const avatarFile = ref<File | null>(null);
+const avatarPreviewUrl = ref("");
+const avatarCropInfo = ref();
+
+function clearAvatarPreview() {
+  if (avatarPreviewUrl.value) {
+    URL.revokeObjectURL(avatarPreviewUrl.value);
+  }
+  avatarPreviewUrl.value = "";
+}
+
+function validateAvatarFile(file: File) {
+  const isPngOrJpg =
+    file.type === "image/png" ||
+    file.type === "image/jpeg" ||
+    /\.(png|jpe?g)$/i.test(file.name);
+  if (!isPngOrJpg) {
+    message("仅支持上传 jpg/png 格式的头像图片", { type: "warning" });
+    return false;
+  }
+  const isLt5M = file.size <= 5 * 1024 * 1024;
+  if (!isLt5M) {
+    message("原始图片大小不能超过 5MB", { type: "warning" });
+    return false;
+  }
+  return true;
+}
+
+const cropRef = ref();
+
+function handleAvatarChange(uploadFile: any) {
+  const raw = uploadFile?.raw as File | undefined;
+  if (!raw) return;
+  if (!validateAvatarFile(raw)) {
+    avatarFile.value = null;
+    clearAvatarPreview();
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.readAsDataURL(raw);
+  reader.onload = e => {
+    const imgSrc = e.target?.result as string;
+    addDialog({
+      title: "裁剪头像",
+      width: "40%",
+      closeOnClickModal: false,
+      fullscreen: deviceDetection(),
+      contentRenderer: () =>
+        h(ReCropperPreview, {
+          ref: cropRef,
+          imgSrc: imgSrc,
+          onCropper: info => (avatarCropInfo.value = info)
+        }),
+      beforeSure: async done => {
+        if (!avatarCropInfo.value?.blob) {
+          message("图片裁剪失败，请重试", { type: "error" });
+          return;
+        }
+        if (avatarCropInfo.value.blob.size > 2 * 1024 * 1024) {
+          message("裁剪后的头像图片大小不能超过 2MB", { type: "warning" });
+          return;
+        }
+
+        avatarFile.value = avatarCropInfo.value.blob;
+        clearAvatarPreview();
+        avatarPreviewUrl.value = avatarCropInfo.value.base64;
+        done();
+      },
+      closeCallBack: () => cropRef.value.hidePopover()
+    });
+  };
+}
+
+function handleAvatarRemove() {
+  avatarFile.value = null;
+  clearAvatarPreview();
+}
+
 function getRef() {
   return ruleFormRef.value;
 }
 
-defineExpose({ getRef });
+function getAvatarFile() {
+  return avatarFile.value;
+}
+
+function resetAvatar() {
+  avatarFile.value = null;
+  clearAvatarPreview();
+}
+
+onBeforeUnmount(() => {
+  clearAvatarPreview();
+});
+
+defineExpose({ getRef, getAvatarFile, resetAvatar });
 </script>
 
 <template>
@@ -111,6 +209,37 @@ defineExpose({ getRef });
             clearable
             placeholder="请输入国籍"
           />
+        </el-form-item>
+      </re-col>
+
+      <re-col :value="12" :xs="24" :sm="24">
+        <el-form-item label="头像">
+          <div class="flex items-start gap-3">
+            <div class="flex flex-col gap-2">
+              <el-upload
+                :auto-upload="false"
+                :show-file-list="false"
+                accept="image/png,image/jpeg"
+                :on-change="handleAvatarChange"
+                :on-remove="handleAvatarRemove"
+              >
+                <el-button type="primary">选择头像</el-button>
+              </el-upload>
+              <el-button v-if="avatarFile" @click="resetAvatar">移除头像</el-button>
+              <span class="text-xs text-[var(--el-text-color-secondary)]">
+                支持 jpg/png，2MB 以内
+              </span>
+            </div>
+            <el-image
+              fit="cover"
+              preview-teleported
+              :src="avatarPreviewUrl || newFormInline.avatar || userAvatar"
+              :preview-src-list="
+                Array.of(avatarPreviewUrl || newFormInline.avatar || userAvatar)
+              "
+              class="w-[96px] h-[96px] rounded-full border border-[var(--el-border-color)]"
+            />
+          </div>
         </el-form-item>
       </re-col>
 

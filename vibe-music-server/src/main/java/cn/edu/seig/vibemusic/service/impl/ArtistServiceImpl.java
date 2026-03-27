@@ -28,11 +28,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +61,9 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
     private UserFavoriteMapper userFavoriteMapper;
     @Autowired
     private MinioService minioService;
+
+    @Value("${storage.local.artistsDir:../vibe-music-data/artists}")
+    private String artistsDir;
 
     /**
      * 获取所有歌手列表
@@ -277,9 +285,11 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
 
         Artist artist = new Artist();
         BeanUtils.copyProperties(artistAddDTO, artist);
-        artistMapper.insert(artist);
+        if (artistMapper.insert(artist) == 0) {
+            return Result.error(MessageConstant.ADD + MessageConstant.FAILED);
+        }
 
-        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS);
+        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS, artist.getArtistId());
     }
 
     /**
@@ -320,7 +330,7 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
         Artist artist = artistMapper.selectById(artistId);
         String avatarUrl = artist.getAvatar();
         if (avatarUrl != null && !avatarUrl.isEmpty()) {
-            minioService.deleteFile(avatarUrl);
+            deleteArtistAvatarFile(avatarUrl);
         }
 
         artist.setAvatar(avatar);
@@ -349,7 +359,7 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
 
         // 2. 先删除 MinIO 里的头像文件
         if (avatarUrl != null && !avatarUrl.isEmpty()) {
-            minioService.deleteFile(avatarUrl);
+            deleteArtistAvatarFile(avatarUrl);
         }
 
         // 3. 删除数据库中的歌手信息
@@ -378,7 +388,7 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
 
         // 2. 先删除 MinIO 里的头像文件
         for (String avatarUrl : avatarUrlList) {
-            minioService.deleteFile(avatarUrl);
+            deleteArtistAvatarFile(avatarUrl);
         }
 
         // 3. 删除数据库中的歌手信息
@@ -387,6 +397,25 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
         }
 
         return Result.success(MessageConstant.DELETE + MessageConstant.SUCCESS);
+    }
+
+    private void deleteArtistAvatarFile(String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isEmpty()) return;
+        int idx = avatarUrl.lastIndexOf("/artists/");
+        if (idx >= 0) {
+            String filename = avatarUrl.substring(idx + "/artists/".length());
+            int qIdx = filename.indexOf("?");
+            if (qIdx >= 0) filename = filename.substring(0, qIdx);
+            Path dir = Paths.get(artistsDir).toAbsolutePath().normalize();
+            Path target = dir.resolve(filename).normalize();
+            if (!target.startsWith(dir)) return;
+            try {
+                Files.deleteIfExists(target);
+            } catch (IOException ignored) {
+            }
+            return;
+        }
+        minioService.deleteFile(avatarUrl);
     }
 
 }

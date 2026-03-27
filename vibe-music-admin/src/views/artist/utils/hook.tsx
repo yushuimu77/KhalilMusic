@@ -263,7 +263,8 @@ export function useArtist(tableRef: Ref) {
           gender: row?.gender ?? "",
           birth: row?.birth ?? "",
           area: row?.area ?? "",
-          introduction: row?.introduction ?? ""
+          introduction: row?.introduction ?? "",
+          avatar: row?.avatar ?? ""
         }
       },
       width: "46%",
@@ -272,9 +273,27 @@ export function useArtist(tableRef: Ref) {
       fullscreenIcon: true,
       closeOnClickModal: false,
       contentRenderer: () => h(editForm, { ref: formRef, formInline: null }),
-      beforeSure: (done, { options }) => {
+      beforeSure: async (done, { options }) => {
         const FormRef = formRef.value.getRef();
         const curData = options.props.formInline as FormItemProps;
+        const avatarFile = formRef.value.getAvatarFile?.() as File | null;
+
+        async function uploadAvatarIfNeeded(artistId: number) {
+          if (!avatarFile) return true;
+          const formData = new FormData();
+          formData.append("avatar", avatarFile);
+          try {
+            const res = await updateArtistAvatar(artistId, formData);
+            if (res.code === 0) return true;
+            message("上传头像失败，" + (res.message || ""), { type: "error" });
+            return false;
+          } catch (error) {
+            console.error("上传头像失败:", error);
+            message("上传头像失败，请重试", { type: "error" });
+            return false;
+          }
+        }
+
         function chores() {
           message(`您${title}了歌手为 ${curData.artistName} 的这条数据`, {
             type: "success"
@@ -282,20 +301,25 @@ export function useArtist(tableRef: Ref) {
           done(); // 关闭弹框
           onSearch(); // 刷新表格数据
         }
-        FormRef.validate(valid => {
+        FormRef.validate(async valid => {
           if (valid) {
             // 表单规则校验通过
             if (title === "新增") {
-              addArtist(curData).then(res => {
+              addArtist(curData).then(async res => {
                 if (res.code === 0) {
+                  const artistId = (res as any).data as number;
+                  await uploadAvatarIfNeeded(artistId);
+                  formRef.value.resetAvatar?.();
                   chores();
                 } else {
                   message("新增歌手失败，" + res.message, { type: "error" });
                 }
               });
             } else {
-              updateArtist(curData).then(res => {
+              updateArtist(curData).then(async res => {
                 if (res.code === 0) {
+                  await uploadAvatarIfNeeded(curData.artistId);
+                  formRef.value.resetAvatar?.();
                   chores();
                 } else {
                   message("修改歌手失败，" + res.message, { type: "error" });
@@ -325,6 +349,15 @@ export function useArtist(tableRef: Ref) {
       beforeSure: async done => {
         if (!avatarInfo.value?.blob) {
           message("图片裁剪失败，请重试", { type: "error" });
+          return;
+        }
+        if (avatarInfo.value.blob.size > 2 * 1024 * 1024) {
+          message("头像图片大小不能超过 2MB", { type: "warning" });
+          return;
+        }
+        const t = avatarInfo.value.blob.type;
+        if (t && t !== "image/png" && t !== "image/jpeg") {
+          message("仅支持上传 jpg/png 格式的头像图片", { type: "warning" });
           return;
         }
 

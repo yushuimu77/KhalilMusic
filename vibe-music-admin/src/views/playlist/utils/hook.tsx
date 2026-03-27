@@ -223,7 +223,8 @@ export function usePlaylist(tableRef: Ref) {
           playlistId: row?.playlistId ?? "",
           title: row?.title ?? "",
           style: row?.style ?? "",
-          introduction: row?.introduction ?? ""
+          introduction: row?.introduction ?? "",
+          coverUrl: row?.cover ?? ""
         }
       },
       width: "46%",
@@ -232,9 +233,27 @@ export function usePlaylist(tableRef: Ref) {
       fullscreenIcon: true,
       closeOnClickModal: false,
       contentRenderer: () => h(editForm, { ref: formRef, formInline: null }),
-      beforeSure: (done, { options }) => {
+      beforeSure: async (done, { options }) => {
         const FormRef = formRef.value.getRef();
         const curData = options.props.formInline as FormItemProps;
+        const coverFile = formRef.value.getCoverFile?.() as File | null;
+
+        async function uploadCoverIfNeeded(playlistId: number) {
+          if (!coverFile) return true;
+          const formData = new FormData();
+          formData.append("cover", coverFile);
+          try {
+            const res = await updatePlaylistCover(playlistId, formData);
+            if (res.code === 0) return true;
+            message("上传封面失败，" + (res.message || ""), { type: "error" });
+            return false;
+          } catch (error) {
+            console.error("上传封面失败:", error);
+            message("上传封面失败，请重试", { type: "error" });
+            return false;
+          }
+        }
+
         function chores() {
           message(`您${formTitle}了歌单为 ${curData.title} 的这条数据`, {
             type: "success"
@@ -242,20 +261,25 @@ export function usePlaylist(tableRef: Ref) {
           done(); // 关闭弹框
           onSearch(); // 刷新表格数据
         }
-        FormRef.validate(valid => {
+        FormRef.validate(async valid => {
           if (valid) {
             // 表单规则校验通过
             if (formTitle === "新增") {
-              addPlaylist(curData).then(res => {
+              addPlaylist(curData).then(async res => {
                 if (res.code === 0) {
+                  const playlistId = (res as any).data as number;
+                  await uploadCoverIfNeeded(playlistId);
+                  formRef.value.resetCover?.();
                   chores();
                 } else {
                   message("新增歌单失败，" + res.message, { type: "error" });
                 }
               });
             } else {
-              updatePlaylist(curData).then(res => {
+              updatePlaylist(curData).then(async res => {
                 if (res.code === 0) {
+                  await uploadCoverIfNeeded(curData.playlistId);
+                  formRef.value.resetCover?.();
                   chores();
                 } else {
                   message("修改歌单失败，" + res.message, { type: "error" });
@@ -285,6 +309,15 @@ export function usePlaylist(tableRef: Ref) {
       beforeSure: async done => {
         if (!coverInfo.value?.blob) {
           message("图片裁剪失败，请重试", { type: "error" });
+          return;
+        }
+        if (coverInfo.value.blob.size > 2 * 1024 * 1024) {
+          message("封面图片大小不能超过 2MB", { type: "warning" });
+          return;
+        }
+        const t = coverInfo.value.blob.type;
+        if (t && t !== "image/png" && t !== "image/jpeg") {
+          message("仅支持上传 jpg/png 格式的封面图片", { type: "warning" });
           return;
         }
 
