@@ -33,8 +33,8 @@ watch(
   <header class="px-5 flex items-center justify-between">
     <!-- Logo/Title -->
     <div class="flex items-center gap-4 cursor-pointer" @click="router.push('/')">
-      <img src="/logo.svg" alt="logo" class="w-10 h-10" />
-      <span class="text-xl font-bold tracking-tight">Vibe Music</span>
+      <Icon icon="mdi:music-circle" class="w-10 h-10 text-primary" />
+      <span class="text-xl font-bold tracking-tight">Khalil Music</span>
     </div>
 
     <!-- Search & Controls -->

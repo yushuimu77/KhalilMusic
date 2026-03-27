@@ -41,6 +41,7 @@ const handleSwitchTab = (tab: string) => {
     v-model="dialogVisible"
     :title="tabTitles[activeTab]"
     width="500px"
+    :append-to-body="true"
     destroy-on-close
     @close="handleClose"
   >

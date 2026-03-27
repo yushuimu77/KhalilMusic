@@ -62,7 +62,7 @@ defineExpose({ openDialog })
 </script>
 
 <template>
-  <el-dialog v-model="dialogVisible" title="意见反馈" width="500px" :close-on-click-modal="false" @close="closeDialog">
+  <el-dialog v-model="dialogVisible" title="意见反馈" width="500px" append-to-body :close-on-click-modal="false" @close="closeDialog">
     <el-form ref="formRef" :model="formData" :rules="rules" label-width="0px">
       <el-form-item prop="content">
         <el-input v-model="formData.content" type="textarea" :rows="7" placeholder="请输入您的宝贵意见或建议（10-200字）"

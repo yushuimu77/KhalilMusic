@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getTopMenu } from "@/router/utils";
 import { useNav } from "@/layout/hooks/useNav";
+import { Icon } from "@iconify/vue";
 
 defineProps({
   collapse: Boolean
@@ -19,7 +20,7 @@ const { title, getLogo } = useNav();
         class="sidebar-logo-link"
         :to="getTopMenu()?.path ?? '/'"
       >
-        <img :src="getLogo()" alt="logo" />
+        <Icon icon="mdi:music-circle" class="sidebar-logo-icon" />
         <span class="sidebar-title">{{ title }}</span>
       </router-link>
       <router-link
@@ -29,7 +30,7 @@ const { title, getLogo } = useNav();
         class="sidebar-logo-link"
         :to="getTopMenu()?.path ?? '/'"
       >
-        <img :src="getLogo()" alt="logo" />
+        <Icon icon="mdi:music-circle" class="sidebar-logo-icon" />
         <span class="sidebar-title">{{ title }}</span>
       </router-link>
     </transition>
@@ -50,9 +51,11 @@ const { title, getLogo } = useNav();
     height: 100%;
     padding-left: 10px;
 
-    img {
+    .sidebar-logo-icon {
       display: inline-block;
       height: 32px;
+      width: 32px;
+      color: var(--pure-theme-sub-menu-active-text);
     }
 
     .sidebar-title {
