@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onBeforeUnmount, h } from "vue";
+import { ref, onBeforeUnmount, h, onMounted } from "vue";
 import ReCol from "@/components/ReCol";
 import { formRules } from "../utils/rule";
 import { FormProps } from "../utils/types";
@@ -8,6 +8,7 @@ import playlistCover from "@/assets/song.jpg";
 import { addDialog } from "@/components/ReDialog";
 import ReCropperPreview from "@/components/ReCropperPreview";
 import { deviceDetection } from "@pureadmin/utils";
+import { getPlaylistSongs, getSongList } from "@/api/system";
 
 const props = withDefaults(defineProps<FormProps>(), {
   formInline: () => ({
@@ -16,7 +17,8 @@ const props = withDefaults(defineProps<FormProps>(), {
     title: "",
     introduction: "",
     style: "",
-    coverUrl: ""
+    coverUrl: "",
+    songIds: []
   })
 });
 
@@ -46,6 +48,52 @@ const newFormInline = ref(props.formInline);
 const coverFile = ref<File | null>(null);
 const coverPreviewUrl = ref("");
 const coverCropInfo = ref();
+
+const songLoading = ref(false);
+const songOptions = ref<Array<{ value: number; label: string }>>([]);
+
+const fetchSongOptions = async (query: string) => {
+  songLoading.value = true;
+  try {
+    const res: any = await getSongList({
+      pageNum: 1,
+      pageSize: 20,
+      artistId: null,
+      songName: query || "",
+      album: ""
+    });
+    if (res.code === 0 && res.data?.items) {
+      songOptions.value = res.data.items.map(item => ({
+        value: item.songId,
+        label: `${item.songName} - ${item.artistName || "未知歌手"}`
+      }));
+    } else {
+      songOptions.value = [];
+    }
+  } catch (e) {
+    songOptions.value = [];
+  } finally {
+    songLoading.value = false;
+  }
+};
+
+onMounted(async () => {
+  const cur = newFormInline.value as any;
+  if (cur?.formTitle === "修改" && cur?.playlistId) {
+    try {
+      const res: any = await getPlaylistSongs(cur.playlistId);
+      if (res.code === 0 && Array.isArray(res.data)) {
+        const songs = res.data;
+        cur.songIds = songs.map(s => s.songId);
+        songOptions.value = songs.map(s => ({
+          value: s.songId,
+          label: `${s.songName} - ${s.artistName || "未知歌手"}`
+        }));
+      }
+    } catch (e) {
+    }
+  }
+});
 
 function clearCoverPreview() {
   if (coverPreviewUrl.value) {
@@ -233,6 +281,30 @@ defineExpose({ getRef, getCoverFile, resetCover });
             line-number
             :autosize="{ minRows: 4, maxRows: 10 }"
           />
+        </el-form-item>
+      </re-col>
+
+      <re-col>
+        <el-form-item label="歌曲">
+          <el-select
+            v-model="newFormInline.songIds"
+            class="w-full"
+            multiple
+            filterable
+            remote
+            reserve-keyword
+            clearable
+            :remote-method="fetchSongOptions"
+            :loading="songLoading"
+            placeholder="搜索并选择歌曲"
+          >
+            <el-option
+              v-for="item in songOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
       </re-col>
     </el-row>

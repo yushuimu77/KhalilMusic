@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class PlaylistAddDTO implements Serializable {
@@ -25,5 +26,7 @@ public class PlaylistAddDTO implements Serializable {
      * 歌单风格
      */
     private String style;
+
+    private List<Long> songIds;
 
 }

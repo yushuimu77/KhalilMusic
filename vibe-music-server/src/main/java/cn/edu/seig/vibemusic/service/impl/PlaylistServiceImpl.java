@@ -4,6 +4,7 @@ import cn.edu.seig.vibemusic.constant.JwtClaimsConstant;
 import cn.edu.seig.vibemusic.constant.MessageConstant;
 import cn.edu.seig.vibemusic.enumeration.LikeStatusEnum;
 import cn.edu.seig.vibemusic.enumeration.RoleEnum;
+import cn.edu.seig.vibemusic.mapper.PlaylistBindingMapper;
 import cn.edu.seig.vibemusic.mapper.PlaylistMapper;
 import cn.edu.seig.vibemusic.mapper.UserFavoriteMapper;
 import cn.edu.seig.vibemusic.model.dto.PlaylistAddDTO;
@@ -32,13 +33,16 @@ import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -57,6 +61,8 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
 
     @Autowired
     private PlaylistMapper playlistMapper;
+    @Autowired
+    private PlaylistBindingMapper playlistBindingMapper;
     @Autowired
     private UserFavoriteMapper userFavoriteMapper;
     @Autowired
@@ -292,6 +298,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
      */
     @Override
     @CacheEvict(cacheNames = "playlistCache", allEntries = true)
+    @Transactional
     public Result addPlaylist(PlaylistAddDTO playlistAddDTOO) {
         QueryWrapper<Playlist> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("title", playlistAddDTOO.getTitle());
@@ -305,7 +312,19 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
             return Result.error(MessageConstant.ADD + MessageConstant.FAILED);
         }
 
-        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS, playlist.getPlaylistId());
+        Long playlistId = playlist.getPlaylistId();
+        List<Long> songIds = playlistAddDTOO.getSongIds();
+        if (songIds != null && !songIds.isEmpty()) {
+            List<Long> distinctSongIds = songIds.stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList();
+            if (!distinctSongIds.isEmpty()) {
+                playlistBindingMapper.insertBatch(playlistId, distinctSongIds);
+            }
+        }
+
+        return Result.success(MessageConstant.ADD + MessageConstant.SUCCESS, playlistId);
     }
 
     /**
@@ -316,6 +335,7 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
      */
     @Override
     @CacheEvict(cacheNames = "playlistCache", allEntries = true)
+    @Transactional
     public Result updatePlaylist(PlaylistUpdateDTO playlistUpdateDTO) {
         Long playlistId = playlistUpdateDTO.getPlaylistId();
 
@@ -328,6 +348,18 @@ public class PlaylistServiceImpl extends ServiceImpl<PlaylistMapper, Playlist> i
         BeanUtils.copyProperties(playlistUpdateDTO, playlist);
         if (playlistMapper.updateById(playlist) == 0) {
             return Result.error(MessageConstant.UPDATE + MessageConstant.FAILED);
+        }
+
+        List<Long> songIds = playlistUpdateDTO.getSongIds();
+        if (songIds != null) {
+            playlistBindingMapper.deleteByPlaylistId(playlistId);
+            List<Long> distinctSongIds = songIds.stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList();
+            if (!distinctSongIds.isEmpty()) {
+                playlistBindingMapper.insertBatch(playlistId, distinctSongIds);
+            }
         }
 
         return Result.success(MessageConstant.UPDATE + MessageConstant.SUCCESS);

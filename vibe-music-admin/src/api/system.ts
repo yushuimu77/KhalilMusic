@@ -290,6 +290,14 @@ export const updatePlaylist = (data: object) => {
   });
 };
 
+/** 歌单管理-获取歌单已选歌曲 */
+export const getPlaylistSongs = (id: number) => {
+  const userData = getToken();
+  return http.request<Result>("get", `/admin/getPlaylistSongs/${id}`, {
+    headers: { Authorization: userData.accessToken }
+  });
+};
+
 /** 歌单管理-更新歌单封面 */
 export const updatePlaylistCover = (id: number, data: object) => {
   const userData = getToken();

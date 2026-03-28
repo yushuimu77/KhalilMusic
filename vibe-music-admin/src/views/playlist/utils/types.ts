@@ -6,6 +6,7 @@ interface FormItemProps {
   introduction: string;
   style: string;
   coverUrl?: string;
+  songIds?: number[];
 }
 interface FormProps {
   formInline: FormItemProps;

@@ -32,6 +32,20 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     private final String  TOKEN_HEADER = "token";
 
+    private String normalizeRequestUri(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isEmpty() && uri.startsWith(contextPath)) {
+            uri = uri.substring(contextPath.length());
+        }
+        if (uri != null && uri.startsWith("/api/")) {
+            uri = uri.substring(4);
+        } else if ("/api".equals(uri)) {
+            uri = "/";
+        }
+        return uri;
+    }
+
     public void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
         response.setStatus(status);
         response.setCharacterEncoding("UTF-8"); // 设置字符编码为UTF-8
@@ -52,7 +66,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7); // 去掉 "Bearer " 前缀
         }
-        String path = request.getRequestURI();
+        String path = normalizeRequestUri(request);
 
         // 获取 Spring 的 PathMatcher 实例
         PathMatcher pathMatcher = new AntPathMatcher();
@@ -92,7 +106,7 @@ public class LoginInterceptor implements HandlerInterceptor {
 
             Map<String, Object> claims = JwtUtil.parseToken(token);
             String role = (String) claims.get(JwtClaimsConstant.ROLE);
-            String requestURI = request.getRequestURI();
+            String requestURI = normalizeRequestUri(request);
 
             if (rolePermissionManager.hasPermission(role, requestURI)) {
                 // 把业务数据存储到ThreadLocal中

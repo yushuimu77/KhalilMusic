@@ -4,6 +4,7 @@ package cn.edu.seig.vibemusic.controller;
 import cn.edu.seig.vibemusic.model.dto.*;
 import cn.edu.seig.vibemusic.model.entity.Artist;
 import cn.edu.seig.vibemusic.model.entity.Playlist;
+import cn.edu.seig.vibemusic.mapper.PlaylistBindingMapper;
 import cn.edu.seig.vibemusic.model.vo.ArtistNameVO;
 import cn.edu.seig.vibemusic.model.vo.SongAdminVO;
 import cn.edu.seig.vibemusic.model.vo.UserManagementVO;
@@ -54,6 +55,8 @@ public class AdminController {
     private IPlaylistService playlistService;
     @Autowired
     private MinioService minioService;
+    @Autowired
+    private PlaylistBindingMapper playlistBindingMapper;
 
     @Value("${storage.local.songCoversDir:../vibe-music-data/songCovers}")
     private String songCoversDir;
@@ -445,6 +448,11 @@ public class AdminController {
     @PutMapping("/updatePlaylist")
     public Result updatePlaylist(@RequestBody PlaylistUpdateDTO playlistUpdateDTO) {
         return playlistService.updatePlaylist(playlistUpdateDTO);
+    }
+
+    @GetMapping("/getPlaylistSongs/{id}")
+    public Result<List<SongAdminVO>> getPlaylistSongs(@PathVariable("id") Long playlistId) {
+        return Result.success(playlistBindingMapper.getPlaylistSongs(playlistId));
     }
 
     /**

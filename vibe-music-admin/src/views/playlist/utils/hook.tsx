@@ -224,7 +224,8 @@ export function usePlaylist(tableRef: Ref) {
           title: row?.title ?? "",
           style: row?.style ?? "",
           introduction: row?.introduction ?? "",
-          coverUrl: row?.cover ?? ""
+          coverUrl: row?.cover ?? "",
+          songIds: []
         }
       },
       width: "46%",
@@ -232,7 +233,7 @@ export function usePlaylist(tableRef: Ref) {
       fullscreen: deviceDetection(),
       fullscreenIcon: true,
       closeOnClickModal: false,
-      contentRenderer: () => h(editForm, { ref: formRef, formInline: null }),
+      contentRenderer: () => h(editForm, { ref: formRef }),
       beforeSure: async (done, { options }) => {
         const FormRef = formRef.value.getRef();
         const curData = options.props.formInline as FormItemProps;
