@@ -9,6 +9,21 @@ interface ArtistInfo {
   area: string
   introduction: string
   songs: Song[]
+  albums: Album[]
+  songCount: number
+  albumCount: number
+  mvCount: number
+  isFollowed: boolean
+}
+
+interface Album {
+  albumId: number
+  albumName: string
+  artistId: number
+  artistName: string
+  albumCoverUrl: string
+  releaseTime: string
+  albumIntroduction: string
 }
 
 export const useArtistStore = defineStore('ArtistStore', {

@@ -49,6 +49,10 @@ const router = createRouter({
       component: () => import('@/pages/like/index.vue'),
     },
     {
+      path: '/favorite-artist',
+      component: () => import('@/pages/favorite-artist/index.vue'),
+    },
+    {
       path: '/user',
       component: () => import('@/pages/user/index.vue'),
     },

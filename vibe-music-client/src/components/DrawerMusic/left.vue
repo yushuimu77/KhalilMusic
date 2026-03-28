@@ -3,10 +3,12 @@ import { formatTime } from '@/utils'
 import { Icon } from '@iconify/vue'
 import type { SongDetail } from '@/api/interface'
 import { ref, inject, type Ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer'
 import vinylImg from '@/assets/vinyl.png'
 import Recently from '../../layout/components/footer/components/recently.vue'
 
+const router = useRouter()
 const {
   currentTrack,
   isPlaying,
@@ -52,6 +54,15 @@ const togglePlayMode = () => {
   currentMode.value = nextMode
   setPlayMode(nextMode)
 }
+
+const closeDrawer = inject<() => void>('closeDrawer')
+const goArtist = () => {
+  const aid = songDetail?.value?.artistId || currentTrack.value.artistId
+  if (aid) {
+    closeDrawer?.()
+    router.push(`/artist/${aid}`)
+  }
+}
 </script>
 
 <template>
@@ -74,7 +85,7 @@ const togglePlayMode = () => {
         <h2 class="text-3xl font-bold text-primary-foreground">
           {{ songDetail?.songName || currentTrack.title }}
         </h2>
-        <p class="text-xl text-inactive">{{ songDetail?.artistName || currentTrack.artist }}</p>
+        <p class="text-xl text-inactive hover:text-primary cursor-pointer transition-colors underline-offset-8 hover:underline" @click="goArtist">{{ songDetail?.artistName || currentTrack.artist }}</p>
       </div>
       <!-- 控制区 -->
       <div class="flex gap-2 w-full items-center justify-center mt-8">

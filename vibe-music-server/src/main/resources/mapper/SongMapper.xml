@@ -6,6 +6,7 @@
     <resultMap id="SongDetailVOResultMap" type="cn.edu.seig.vibemusic.model.vo.SongDetailVO">
         <id column="songId" property="songId"/>
         <result column="songName" property="songName"/>
+        <result column="artistId" property="artistId"/>
         <result column="artistName" property="artistName"/>
         <result column="album" property="album"/>
         <result column="lyric" property="lyric"/>
@@ -33,6 +34,7 @@
                s.cover_url    AS songCoverUrl,
                s.audio_url    AS audioUrl,
                s.release_time AS releaseTime,
+               a.id           AS artistId,
                a.name         AS artistName,
                c.id           AS commentId,
                c.content      AS content,

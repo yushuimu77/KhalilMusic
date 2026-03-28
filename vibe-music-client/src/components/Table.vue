@@ -41,6 +41,7 @@ const convertToTrackModel = (song: Song) => {
     id: song.songId.toString(),
     title: song.songName,
     artist: song.artistName,
+    artistId: song.artistId,
     album: song.album,
     cover: song.coverUrl || default_album,
     url: song.audioUrl,
@@ -146,6 +147,26 @@ const isCurrentPlaying = (songId: number) => {
   return currentTrack && Number(currentTrack.id) === songId
 }
 
+const goArtist = async (row: Song, e: Event) => {
+  e.stopPropagation()
+  const artistId = row.artistId || props.artistId
+  if (artistId) {
+    router.push(`/artist/${artistId}`)
+    return
+  }
+  try {
+    const res = await getAllArtists({ pageNum: 1, pageSize: 1, artistName: row.artistName })
+    if (res.code === 0 && res.data?.items?.length) {
+      const aid = res.data.items[0].artistId
+      router.push(`/artist/${aid}`)
+    } else {
+      ElMessage.warning('无法跳转，缺少歌手信息')
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '跳转失败')
+  }
+}
+
 const goAlbum = async (row: Song, e: Event) => {
   e.stopPropagation()
   const albumName = row.album
@@ -213,7 +234,7 @@ const goAlbum = async (row: Song, e: Event) => {
 
           <!-- 歌手 -->
           <div class="text-left">
-            <div class="line-clamp-1 w-48">{{ row.artistName }}</div>
+            <div class="line-clamp-1 w-48 hover:text-primary cursor-pointer underline-offset-4 hover:underline" @click="goArtist(row, $event)">{{ row.artistName }}</div>
           </div>
 
           <div class="text-left">

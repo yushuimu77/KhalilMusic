@@ -1,5 +1,6 @@
 package cn.edu.seig.vibemusic.controller;
 
+import cn.edu.seig.vibemusic.model.dto.ArtistDTO;
 import cn.edu.seig.vibemusic.model.dto.PlaylistDTO;
 import cn.edu.seig.vibemusic.model.dto.SongDTO;
 import cn.edu.seig.vibemusic.model.vo.PlaylistVO;
@@ -98,5 +99,15 @@ public class UserFavoriteController {
     @PostMapping("/followArtist")
     public Result followArtist(@RequestParam Long artistId) {
         return userFavoriteService.followArtist(artistId);
+    }
+
+    @PostMapping("/unfollowArtist")
+    public Result unfollowArtist(@RequestParam Long artistId) {
+        return userFavoriteService.unfollowArtist(artistId);
+    }
+
+    @PostMapping("/getFollowedArtists")
+    public Result getFollowedArtists(@RequestBody ArtistDTO artistDTO) {
+        return userFavoriteService.getFollowedArtists(artistDTO);
     }
 }

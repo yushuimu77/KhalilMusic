@@ -15,7 +15,8 @@ const favoriteStore = useFavoriteStore()
 const authVisible = ref(false)
 
 const handleProtectedRoute = (path: string) => {
-  if (!user.isLoggedIn && (path === '/like' || path === '/user')) {
+  const protectedRoutes = ['/like', '/user', '/favorite-artist', '/feedback']
+  if (protectedRoutes.includes(path) && !user.isLoggedIn) {
     ElMessage.warning('请先登录')
     authVisible.value = true
     return false

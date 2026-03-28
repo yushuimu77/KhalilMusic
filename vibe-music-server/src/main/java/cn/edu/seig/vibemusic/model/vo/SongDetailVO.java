@@ -25,6 +25,11 @@ public class SongDetailVO implements Serializable {
     private String songName;
 
     /**
+     * 歌手 id
+     */
+    private Long artistId;
+
+    /**
      * 歌手
      */
     private String artistName;

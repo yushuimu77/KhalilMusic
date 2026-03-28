@@ -3,13 +3,16 @@ package cn.edu.seig.vibemusic.service.impl;
 import cn.edu.seig.vibemusic.constant.JwtClaimsConstant;
 import cn.edu.seig.vibemusic.constant.MessageConstant;
 import cn.edu.seig.vibemusic.enumeration.LikeStatusEnum;
+import cn.edu.seig.vibemusic.mapper.ArtistMapper;
 import cn.edu.seig.vibemusic.mapper.PlaylistMapper;
 import cn.edu.seig.vibemusic.mapper.SongMapper;
 import cn.edu.seig.vibemusic.mapper.UserFavoriteMapper;
+import cn.edu.seig.vibemusic.model.dto.ArtistDTO;
 import cn.edu.seig.vibemusic.model.dto.PlaylistDTO;
 import cn.edu.seig.vibemusic.model.dto.SongDTO;
 import cn.edu.seig.vibemusic.model.entity.Playlist;
 import cn.edu.seig.vibemusic.model.entity.UserFavorite;
+import cn.edu.seig.vibemusic.model.vo.ArtistVO;
 import cn.edu.seig.vibemusic.model.vo.PlaylistVO;
 import cn.edu.seig.vibemusic.model.vo.SongVO;
 import cn.edu.seig.vibemusic.result.PageResult;
@@ -51,6 +54,8 @@ public class UserFavoriteServiceImpl extends ServiceImpl<UserFavoriteMapper, Use
     private SongMapper songMapper;
     @Autowired
     private PlaylistMapper playlistMapper;
+    @Autowired
+    private ArtistMapper artistMapper;
 
     /**
      * 获取用户收藏的歌曲列表
@@ -218,6 +223,7 @@ public class UserFavoriteServiceImpl extends ServiceImpl<UserFavoriteMapper, Use
     }
 
     @Override
+    @CacheEvict(cacheNames = {"userFavoriteCache", "artistCache"}, allEntries = true)
     public Result followArtist(Long artistId) {
         Map<String, Object> map = ThreadLocalUtil.get();
         Object userIdObj = map.get(JwtClaimsConstant.USER_ID);
@@ -226,4 +232,30 @@ public class UserFavoriteServiceImpl extends ServiceImpl<UserFavoriteMapper, Use
         return Result.success();
     }
 
+    @Override
+    @CacheEvict(cacheNames = {"userFavoriteCache", "artistCache"}, allEntries = true)
+    public Result unfollowArtist(Long artistId) {
+        Map<String, Object> map = ThreadLocalUtil.get();
+        Object userIdObj = map.get(JwtClaimsConstant.USER_ID);
+        Long userId = TypeConversionUtil.toLong(userIdObj);
+        userFavoriteMapper.deleteFollowArtist(userId, artistId);
+        return Result.success();
+    }
+
+    @Override
+    public Result<PageResult<ArtistVO>> getFollowedArtists(ArtistDTO artistDTO) {
+        Map<String, Object> map = ThreadLocalUtil.get();
+        Object userIdObj = map.get(JwtClaimsConstant.USER_ID);
+        Long userId = TypeConversionUtil.toLong(userIdObj);
+
+        List<Long> followedArtistIds = userFavoriteMapper.getFollowedArtistIds(userId);
+        if (followedArtistIds.isEmpty()) {
+            return Result.success(new PageResult<>(0L, Collections.emptyList()));
+        }
+
+        Page<ArtistVO> page = new Page<>(artistDTO.getPageNum(), artistDTO.getPageSize());
+        IPage<ArtistVO> artistPage = artistMapper.getArtistsByIds(page, followedArtistIds);
+
+        return Result.success(new PageResult<>(artistPage.getTotal(), artistPage.getRecords()));
+    }
 }

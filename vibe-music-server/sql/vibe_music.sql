@@ -2747,4 +2747,20 @@ INSERT INTO `tb_user_favorite` VALUES (426, 126, 0, 529, NULL, '2025-04-07 18:14
 INSERT INTO `tb_user_favorite` VALUES (427, 126, 0, 207, NULL, '2025-04-07 18:17:04');
 INSERT INTO `tb_user_favorite` VALUES (432, 126, 1, NULL, 7, '2025-04-19 14:59:29');
 
+-- ----------------------------
+-- Table structure for tb_follow
+-- ----------------------------
+DROP TABLE IF EXISTS `tb_follow`;
+CREATE TABLE `tb_follow`  (
+  `id` bigint(0) NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `user_id` bigint(0) NOT NULL COMMENT '用户 id',
+  `artist_id` bigint(0) NOT NULL COMMENT '歌手 id',
+  `create_time` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '关注时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_user_artist`(`user_id`, `artist_id`) USING BTREE,
+  INDEX `fk_follow_artist_id`(`artist_id`) USING BTREE,
+  CONSTRAINT `fk_follow_artist_id` FOREIGN KEY (`artist_id`) REFERENCES `tb_artist` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_follow_user_id` FOREIGN KEY (`user_id`) REFERENCES `tb_user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
 SET FOREIGN_KEY_CHECKS = 1;

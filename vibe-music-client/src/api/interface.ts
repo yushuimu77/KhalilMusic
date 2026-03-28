@@ -77,6 +77,7 @@ export interface Comment {
 export interface SongDetail {
     songId: number
     songName: string
+    artistId?: number
     artistName: string
     album: string
     lyric: string | null

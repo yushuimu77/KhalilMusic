@@ -11,10 +11,7 @@ import cn.edu.seig.vibemusic.model.dto.ArtistDTO;
 import cn.edu.seig.vibemusic.model.dto.ArtistUpdateDTO;
 import cn.edu.seig.vibemusic.model.entity.Artist;
 import cn.edu.seig.vibemusic.model.entity.UserFavorite;
-import cn.edu.seig.vibemusic.model.vo.ArtistDetailVO;
-import cn.edu.seig.vibemusic.model.vo.ArtistNameVO;
-import cn.edu.seig.vibemusic.model.vo.ArtistVO;
-import cn.edu.seig.vibemusic.model.vo.SongVO;
+import cn.edu.seig.vibemusic.model.vo.*;
 import cn.edu.seig.vibemusic.result.PageResult;
 import cn.edu.seig.vibemusic.result.Result;
 import cn.edu.seig.vibemusic.service.IArtistService;
@@ -203,7 +200,18 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
 
         // 设置默认状态
         List<SongVO> songVOList = artistDetailVO.getSongs();
-        songVOList.forEach(songVO -> songVO.setLikeStatus(LikeStatusEnum.DEFAULT.getId()));
+        if (songVOList != null) {
+            songVOList.forEach(songVO -> songVO.setLikeStatus(LikeStatusEnum.DEFAULT.getId()));
+        }
+
+        // 获取专辑列表
+        List<AlbumVO> albums = artistMapper.getAlbumsByArtistId(artistId);
+        artistDetailVO.setAlbums(albums);
+
+        // 设置数量
+        artistDetailVO.setSongCount(songVOList != null ? songVOList.size() : 0);
+        artistDetailVO.setAlbumCount(albums != null ? albums.size() : 0);
+        artistDetailVO.setMvCount(0); // 暂时默认为0
 
         // 获取请求头中的 token
         String token = request.getHeader("Authorization");
@@ -223,23 +231,31 @@ public class ArtistServiceImpl extends ServiceImpl<ArtistMapper, Artist> impleme
                 Object userIdObj = map.get(JwtClaimsConstant.USER_ID);
                 Long userId = TypeConversionUtil.toLong(userIdObj);
 
+                // 检查是否关注
+                Integer followCount = artistMapper.isFollowed(userId, artistId);
+                artistDetailVO.setIsFollowed(followCount > 0);
+
                 // 获取用户收藏的歌曲
-                List<UserFavorite> favoriteSongs = userFavoriteMapper.selectList(new QueryWrapper<UserFavorite>()
-                        .eq("user_id", userId)
-                        .eq("type", 0));
+                if (songVOList != null) {
+                    List<UserFavorite> favoriteSongs = userFavoriteMapper.selectList(new QueryWrapper<UserFavorite>()
+                            .eq("user_id", userId)
+                            .eq("type", 0));
 
-                // 获取用户收藏的歌曲 id
-                Set<Long> favoriteSongIds = favoriteSongs.stream()
-                        .map(UserFavorite::getSongId)
-                        .collect(Collectors.toSet());
+                    // 获取用户收藏的歌曲 id
+                    Set<Long> favoriteSongIds = favoriteSongs.stream()
+                            .map(UserFavorite::getSongId)
+                            .collect(Collectors.toSet());
 
-                // 检查并更新状态
-                for (SongVO songVO : songVOList) {
-                    if (favoriteSongIds.contains(songVO.getSongId())) {
-                        songVO.setLikeStatus(LikeStatusEnum.LIKE.getId());
+                    // 检查并更新状态
+                    for (SongVO songVO : songVOList) {
+                        if (favoriteSongIds.contains(songVO.getSongId())) {
+                            songVO.setLikeStatus(LikeStatusEnum.LIKE.getId());
+                        }
                     }
                 }
             }
+        } else {
+            artistDetailVO.setIsFollowed(false);
         }
 
         // 设置歌曲列表

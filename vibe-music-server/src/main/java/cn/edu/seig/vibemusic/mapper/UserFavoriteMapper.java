@@ -2,6 +2,7 @@ package cn.edu.seig.vibemusic.mapper;
 
 import cn.edu.seig.vibemusic.model.entity.UserFavorite;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -39,6 +40,13 @@ public interface UserFavoriteMapper extends BaseMapper<UserFavorite> {
     // 根据 style 查询对应的 id
     List<Long> getFavoriteIdsByStyle(List<String> favoriteStyles);
 
-    @Insert("insert into tb_follow(user_id,artist_id) values (#{userid},#{artistId})")
+    // 查询用户关注的所有歌手ID
+    @Select("SELECT artist_id FROM tb_follow WHERE user_id = #{userId}")
+    List<Long> getFollowedArtistIds(@Param("userId") Long userId);
+
+    @Insert("insert into tb_follow(user_id,artist_id) values (#{userId},#{artistId})")
     void addFollowArtist(Long userId, Long artistId);
+
+    @Delete("delete from tb_follow where user_id = #{userId} and artist_id = #{artistId}")
+    void deleteFollowArtist(Long userId, Long artistId);
 }

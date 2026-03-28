@@ -13,6 +13,12 @@ watch(() => route.path, (p) => {
     showDrawerMusic.value = false
   }
 })
+const goArtist = (e: Event) => {
+  e.stopPropagation()
+  if (currentTrack.value.artistId) {
+    router.push(`/artist/${currentTrack.value.artistId}`)
+  }
+}
 </script>
 
 <template>
@@ -34,7 +40,7 @@ watch(() => route.path, (p) => {
       >
         {{ currentTrack.title }}
       </div>
-      <div class="text-xs text-muted-foreground line-clamp-1 h-4 mt-0.5 mx-2">
+      <div class="text-xs text-muted-foreground line-clamp-1 h-4 mt-0.5 mx-2 hover:text-primary transition-colors underline-offset-2 hover:underline" @click="goArtist">
         {{ currentTrack.artist }}
       </div>
     </div>

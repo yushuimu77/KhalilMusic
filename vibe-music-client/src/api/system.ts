@@ -155,6 +155,21 @@ export const cancelCollectPlaylist = (playlistId: number) => {
   })
 }
 
+/** 关注歌手 */
+export const followArtist = (artistId: number) => {
+  return http<Result>('post', '/favorite/followArtist', { params: { artistId } })
+}
+
+/** 取消关注歌手 */
+export const unfollowArtist = (artistId: number) => {
+  return http<Result>('post', '/favorite/unfollowArtist', { params: { artistId } })
+}
+
+/** 获取关注的歌手列表 */
+export const getFollowedArtists = (data: object) => {
+  return http<ResultTable>('post', '/favorite/getFollowedArtists', { data })
+}
+
 /** 新增歌曲评论 */
 export const addSongComment = (data: object) => {
   return http<Result>('post', '/comment/addSongComment', { data })

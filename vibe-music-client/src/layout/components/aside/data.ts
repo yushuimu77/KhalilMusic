@@ -22,7 +22,16 @@ export const MenuData = [
   {
     title: '我的',
     children: [
-      { title: '喜欢', icon: 'ri:heart-line', router: '/like' },
+      {
+      title: '我喜欢的音乐',
+      icon: 'ri:heart-line',
+      router: '/like',
+    },
+    {
+      title: '我喜欢的歌手',
+      icon: 'ri:user-heart-line',
+      router: '/favorite-artist',
+    },
       {
         title: '个人中心',
         icon: 'mi:user',

@@ -55,4 +55,28 @@ public class ArtistDetailVO implements Serializable {
      */
     private List<SongVO> songs;
 
+    /**
+     * 专辑列表
+     */
+    private List<AlbumVO> albums;
+
+    /**
+     * 歌曲数量
+     */
+    private Integer songCount;
+
+    /**
+     * 专辑数量
+     */
+    private Integer albumCount;
+
+    /**
+     * MV 数量
+     */
+    private Integer mvCount;
+
+    /**
+     * 是否已关注
+     */
+    private Boolean isFollowed;
 }

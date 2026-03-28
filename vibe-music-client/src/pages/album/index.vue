@@ -41,6 +41,13 @@ const fetchAlbum = async () => {
 watch(() => [route.path, route.query.albumName, route.query.artistId], () => fetchAlbum(), { immediate: true })
 
 const songs = computed<Song[]>(() => album.value?.songs || [])
+
+const router = useRouter()
+const goArtist = () => {
+  if (album.value?.artistId) {
+    router.push(`/artist/${album.value.artistId}`)
+  }
+}
 </script>
 
 <template>
@@ -53,11 +60,11 @@ const songs = computed<Song[]>(() => album.value?.songs || [])
         <div class="flex flex-col justify-between">
           <div>
             <h1 class="text-3xl font-bold mb-2">{{ album.albumName }}</h1>
-            <div class="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              <span class="relative flex shrink-0 overflow-hidden rounded-full w-6 h-6">
+            <div class="flex items-center gap-2 text-sm text-muted-foreground mb-2 cursor-pointer group" @click="goArtist">
+              <span class="relative flex shrink-0 overflow-hidden rounded-full w-6 h-6 group-hover:ring-2 group-hover:ring-primary transition-all">
                 <img class="aspect-square h-full w-full" :alt="album.artistName" :src="album.artistAvatar || ''" />
               </span>
-              <span>{{ album.artistName }}</span>
+              <span class="group-hover:text-primary transition-colors underline-offset-4 group-hover:underline">{{ album.artistName }}</span>
               <span>•</span>
               <span>{{ album.songCount }} 首歌曲</span>
             </div>

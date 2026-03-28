@@ -2,16 +2,18 @@ package cn.edu.seig.vibemusic.service;
 
 import cn.edu.seig.vibemusic.model.dto.PlaylistDTO;
 import cn.edu.seig.vibemusic.model.dto.SongDTO;
+import cn.edu.seig.vibemusic.model.dto.ArtistDTO;
 import cn.edu.seig.vibemusic.model.entity.UserFavorite;
 import cn.edu.seig.vibemusic.model.vo.PlaylistVO;
 import cn.edu.seig.vibemusic.model.vo.SongVO;
+import cn.edu.seig.vibemusic.model.vo.ArtistVO;
 import cn.edu.seig.vibemusic.result.PageResult;
 import cn.edu.seig.vibemusic.result.Result;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**
  * <p>
- *  服务类
+ * 服务类
  * </p>
  *
  * @author sunpingli
@@ -37,5 +39,10 @@ public interface IUserFavoriteService extends IService<UserFavorite> {
     // 取消收藏歌单
     Result cancelCollectPlaylist(Long playlistId);
 
+    // 获取用户关注的歌手列表
+    Result<PageResult<ArtistVO>> getFollowedArtists(ArtistDTO artistDTO);
+
     Result followArtist(Long artistId);
+
+    Result unfollowArtist(Long artistId);
 }
